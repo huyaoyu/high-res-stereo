@@ -65,33 +65,34 @@ from dataloader import KITTIloader2012 as lk12
 from dataloader import MiddleburyLoader as DA
 
 batch_size = args.batchsize
-scale_factor = args.maxdisp / 384. # controls training resolution
-all_left_img, all_right_img, all_left_disp, all_right_disp = ls.dataloader('%s/carla-highres/trainingF'%args.database)
-loader_carla = DA.myImageFloder(all_left_img,all_right_img,all_left_disp,right_disparity=all_right_disp, rand_scale=[0.225,0.6*scale_factor], order=2)
 
-all_left_img, all_right_img, all_left_disp, all_right_disp = ls.dataloader('%s/mb-ex-training/trainingF'%args.database)  # mb-ex
-loader_mb = DA.myImageFloder(all_left_img,all_right_img,all_left_disp,right_disparity=all_right_disp, rand_scale=[0.225,0.6*scale_factor], order=0)
+scale_factor = args.maxdisp / 384. # controls training resolution
+
+# all_left_img, all_right_img, all_left_disp, all_right_disp = ls.dataloader('%s/carla-highres/trainingF'%args.database)
+# loader_carla = DA.myImageFloder(all_left_img,all_right_img,all_left_disp,right_disparity=all_right_disp, rand_scale=[0.225,0.6*scale_factor], order=2)
+
+# all_left_img, all_right_img, all_left_disp, all_right_disp = ls.dataloader('%s/mb-ex-training/trainingF'%args.database)  # mb-ex
+# loader_mb = DA.myImageFloder(all_left_img,all_right_img,all_left_disp,right_disparity=all_right_disp, rand_scale=[0.225,0.6*scale_factor], order=0)
 
 all_left_img, all_right_img, all_left_disp, all_right_disp = lt.dataloader('%s/sceneflow/'%args.database)
 loader_scene = DA.myImageFloder(all_left_img,all_right_img,all_left_disp,right_disparity=all_right_disp, rand_scale=[0.9,2.4*scale_factor], order=2)
 
-all_left_img, all_right_img, all_left_disp,_,_,_ = lk15.dataloader('%s/kitti_scene/training/'%args.database,typ='train') # trainval
-loader_kitti15 = DA.myImageFloder(all_left_img,all_right_img,all_left_disp, rand_scale=[0.9,2.4*scale_factor], order=0)
-all_left_img, all_right_img, all_left_disp = lk12.dataloader('%s/data_stereo_flow/training/'%args.database)
-loader_kitti12 = DA.myImageFloder(all_left_img,all_right_img,all_left_disp, rand_scale=[0.9,2.4*scale_factor], order=0)
+# all_left_img, all_right_img, all_left_disp,_,_,_ = lk15.dataloader('%s/kitti_scene/training/'%args.database,typ='train') # trainval
+# loader_kitti15 = DA.myImageFloder(all_left_img,all_right_img,all_left_disp, rand_scale=[0.9,2.4*scale_factor], order=0)
+# all_left_img, all_right_img, all_left_disp = lk12.dataloader('%s/data_stereo_flow/training/'%args.database)
+# loader_kitti12 = DA.myImageFloder(all_left_img,all_right_img,all_left_disp, rand_scale=[0.9,2.4*scale_factor], order=0)
 
-all_left_img, all_right_img, all_left_disp, _ = ls.dataloader('%s/eth3d/'%args.database)
-loader_eth3d = DA.myImageFloder(all_left_img,all_right_img,all_left_disp, rand_scale=[0.9,2.4*scale_factor],order=0)
+# all_left_img, all_right_img, all_left_disp, _ = ls.dataloader('%s/eth3d/'%args.database)
+# loader_eth3d = DA.myImageFloder(all_left_img,all_right_img,all_left_disp, rand_scale=[0.9,2.4*scale_factor],order=0)
 
-data_inuse = torch.utils.data.ConcatDataset([loader_carla]*40 + [loader_mb]*500 + [loader_scene] + [loader_kitti15] + [loader_kitti12]*80 + [loader_eth3d]*1000)
+# data_inuse = torch.utils.data.ConcatDataset([loader_carla]*40 + [loader_mb]*500 + [loader_scene] + [loader_kitti15] + [loader_kitti12]*80 + [loader_eth3d]*1000)
+data_inuse = torch.utils.data.ConcatDataset( [loader_scene] )
 
 TrainImgLoader = torch.utils.data.DataLoader(
          data_inuse, 
          batch_size= batch_size, shuffle= True, num_workers=batch_size, drop_last=True, worker_init_fn=_init_fn)
 
 print('%d batches per epoch'%(len(data_inuse)//batch_size))
-
-
 
 def train(imgL,imgR,disp_L):
         model.train()
