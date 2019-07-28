@@ -13,7 +13,7 @@ import torch.nn.functional as F
 import numpy as np
 import time
 from models import hsm
-from utils import logger
+# from utils import logger
 torch.backends.cudnn.benchmark=True
 
 
@@ -140,7 +140,7 @@ def adjust_learning_rate(optimizer, epoch):
 
 
 def main():
-    log = logger.Logger(args.savemodel, name=args.logname)
+    # log = logger.Logger(args.savemodel, name=args.logname)
     total_iters = 0
 
     for epoch in range(1, args.epochs+1):
@@ -154,19 +154,19 @@ def main():
             print('Iter %d training loss = %.3f , time = %.2f' %(batch_idx, loss, time.time() - start_time))
             total_train_loss += loss
 
-            if total_iters %10 == 0:
-                log.scalar_summary('train/loss_batch',loss, total_iters)
-            if total_iters %100 == 0:
-                log.image_summary('train/left',imgL_crop[0:1],total_iters)
-                log.image_summary('train/right',imgR_crop[0:1],total_iters)
-                log.image_summary('train/gt0',disp_crop_L[0:1],total_iters)
-                log.image_summary('train/entropy',vis['entropy'][0:1],total_iters)
-                log.histo_summary('train/disparity_hist',vis['output3'], total_iters)
-                log.histo_summary('train/gt_hist',np.asarray(disp_crop_L), total_iters)
-                log.image_summary('train/output3',vis['output3'][0:1],total_iters)
-                log.image_summary('train/output4',vis['output4'][0:1],total_iters)
-                log.image_summary('train/output5',vis['output5'][0:1],total_iters)
-                log.image_summary('train/output6',vis['output6'][0:1],total_iters)
+            # if total_iters %10 == 0:
+            #     log.scalar_summary('train/loss_batch',loss, total_iters)
+            # if total_iters %100 == 0:
+            #     log.image_summary('train/left',imgL_crop[0:1],total_iters)
+            #     log.image_summary('train/right',imgR_crop[0:1],total_iters)
+            #     log.image_summary('train/gt0',disp_crop_L[0:1],total_iters)
+            #     log.image_summary('train/entropy',vis['entropy'][0:1],total_iters)
+            #     log.histo_summary('train/disparity_hist',vis['output3'], total_iters)
+            #     log.histo_summary('train/gt_hist',np.asarray(disp_crop_L), total_iters)
+            #     log.image_summary('train/output3',vis['output3'][0:1],total_iters)
+            #     log.image_summary('train/output4',vis['output4'][0:1],total_iters)
+            #     log.image_summary('train/output5',vis['output5'][0:1],total_iters)
+            #     log.image_summary('train/output6',vis['output6'][0:1],total_iters)
                     
             total_iters += 1
 
@@ -179,7 +179,7 @@ def main():
                     'train_loss': total_train_loss/len(TrainImgLoader),
                 }, savefilename)
 
-        log.scalar_summary('train/loss',total_train_loss/len(TrainImgLoader), epoch)
+        # log.scalar_summary('train/loss',total_train_loss/len(TrainImgLoader), epoch)
         torch.cuda.empty_cache()
 
 
