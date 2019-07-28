@@ -58,11 +58,11 @@ torch.manual_seed(args.seed)  # set again
 torch.cuda.manual_seed(args.seed)
 
 
-from dataloader import listfiles as ls
+# from dataloader import listfiles as ls
 from dataloader import listsceneflow as lt
-from dataloader import KITTIloader2015 as lk15
-from dataloader import KITTIloader2012 as lk12
-from dataloader import MiddleburyLoader as DA
+# from dataloader import KITTIloader2015 as lk15
+# from dataloader import KITTIloader2012 as lk12
+# from dataloader import MiddleburyLoader as DA
 
 batch_size = args.batchsize
 
