@@ -41,9 +41,9 @@ def dataloader(filepath):
                 all_left_disp.append(monkaa_disp+'/'+dd+'/left/'+im.split(".")[0]+'.pfm')
                 all_right_disp.append(monkaa_disp+'/'+dd+'/right/'+im.split(".")[0]+'.pfm')
 
-    for im in os.listdir(monkaa_path+'/'+dd+'/right/'):
-        if is_image_file(monkaa_path+'/'+dd+'/right/'+im):
-            all_right_img.append(monkaa_path+'/'+dd+'/right/'+im)
+        for im in os.listdir(monkaa_path+'/'+dd+'/right/'):
+            if is_image_file(monkaa_path+'/'+dd+'/right/'+im):
+                all_right_img.append(monkaa_path+'/'+dd+'/right/'+im)
 
     # flying_path = filepath + [x for x in image if x == 'frames_cleanpass'][0]
     # flying_disp = filepath + [x for x in disp if x == 'disparity'][0]
