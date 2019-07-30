@@ -3,7 +3,7 @@ from PIL import Image
 import numpy as np
 from utils import preprocess
 from utils import readpfm as rp
-import flow_transforms
+from . import flow_transforms
 import pdb
 import torchvision
 import warnings

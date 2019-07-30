@@ -62,7 +62,7 @@ torch.cuda.manual_seed(args.seed)
 from dataloader import listsceneflow as lt
 # from dataloader import KITTIloader2015 as lk15
 # from dataloader import KITTIloader2012 as lk12
-# from dataloader import MiddleburyLoader as DA
+from dataloader import MiddleburyLoader as DA
 
 batch_size = args.batchsize
 
@@ -172,7 +172,8 @@ def main():
 
             if (total_iters + 1)%2000==0:
                 #SAVE
-                savefilename = args.savemodel+'/'+args.logname+'/finetune_'+str(total_iters)+'.tar'
+                # savefilename = args.savemodel+'/'+args.logname+'/finetune_'+str(total_iters)+'.tar'
+                savefilename = args.savemodel + "_" + str(total_iters) + ".tar"
                 torch.save({
                     'iters': total_iters,
                     'state_dict': model.state_dict(),

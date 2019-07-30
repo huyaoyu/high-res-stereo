@@ -66,7 +66,7 @@ class HSMNet(nn.Module):
         feat5 = self.feature_vol(conv30, conv31, self.maxdisp//32)
         feat4 = self.feature_vol(conv20, conv21, self.maxdisp//16)
         feat3 = self.feature_vol(conv10, conv11, self.maxdisp//8)
-
+        import ipdb; ipdb.set_trace()
         feat6_2x, cost6 = self.decoder6(feat6)
         feat5 = torch.cat((feat6_2x, feat5),dim=1)
 
