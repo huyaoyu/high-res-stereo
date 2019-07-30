@@ -20,11 +20,6 @@ def dataloader(filepath):
     # monkaa_path = filepath + [x for x in image if 'monkaa' in x][0]
     # monkaa_disp = filepath + [x for x in disp if 'monkaa' in x][0]
 
-    monkaa_path = filepath + "/monkaa/frames_cleanpass"
-    monkaa_disp = filepath + "/monkaa/disparity"
-
-    monkaa_dir  = os.listdir(monkaa_path)
-
     all_left_img=[]
     all_right_img=[]
     all_left_disp = []
@@ -34,16 +29,22 @@ def dataloader(filepath):
     test_left_disp = []
     test_right_disp = []
 
-    for dd in monkaa_dir:
-        for im in os.listdir(monkaa_path+'/'+dd+'/left/'):
-            if is_image_file(monkaa_path+'/'+dd+'/left/'+im):
-                all_left_img.append(monkaa_path+'/'+dd+'/left/'+im)
-                all_left_disp.append(monkaa_disp+'/'+dd+'/left/'+im.split(".")[0]+'.pfm')
-                all_right_disp.append(monkaa_disp+'/'+dd+'/right/'+im.split(".")[0]+'.pfm')
+    monkaa_path = filepath + "/monkaa/frames_cleanpass"
+    monkaa_disp = filepath + "/monkaa/disparity"
 
-        for im in os.listdir(monkaa_path+'/'+dd+'/right/'):
-            if is_image_file(monkaa_path+'/'+dd+'/right/'+im):
-                all_right_img.append(monkaa_path+'/'+dd+'/right/'+im)
+    if ( os.path.isdir( monkaa_path ) ):
+        monkaa_dir  = os.listdir(monkaa_path)
+
+        for dd in monkaa_dir:
+            for im in os.listdir(monkaa_path+'/'+dd+'/left/'):
+                if is_image_file(monkaa_path+'/'+dd+'/left/'+im):
+                    all_left_img.append(monkaa_path+'/'+dd+'/left/'+im)
+                    all_left_disp.append(monkaa_disp+'/'+dd+'/left/'+im.split(".")[0]+'.pfm')
+                    all_right_disp.append(monkaa_disp+'/'+dd+'/right/'+im.split(".")[0]+'.pfm')
+
+            for im in os.listdir(monkaa_path+'/'+dd+'/right/'):
+                if is_image_file(monkaa_path+'/'+dd+'/right/'+im):
+                    all_right_img.append(monkaa_path+'/'+dd+'/right/'+im)
 
     # flying_path = filepath + [x for x in image if x == 'frames_cleanpass'][0]
     # flying_disp = filepath + [x for x in disp if x == 'disparity'][0]
@@ -54,39 +55,40 @@ def dataloader(filepath):
     flying_dir = flying_path+'/TRAIN/'
     subdir = ['A','B','C']
 
-    for ss in subdir:
-        flying = os.listdir(flying_dir+ss)
+    if ( os.path.isdir( flying_path ) ):
+        for ss in subdir:
+            flying = os.listdir(flying_dir+ss)
 
-    for ff in flying:
-        imm_l = os.listdir(flying_dir+ss+'/'+ff+'/left/')
-        for im in imm_l:
-            if is_image_file(flying_dir+ss+'/'+ff+'/left/'+im):
-                all_left_img.append(flying_dir+ss+'/'+ff+'/left/'+im)
+        for ff in flying:
+            imm_l = os.listdir(flying_dir+ss+'/'+ff+'/left/')
+            for im in imm_l:
+                if is_image_file(flying_dir+ss+'/'+ff+'/left/'+im):
+                    all_left_img.append(flying_dir+ss+'/'+ff+'/left/'+im)
 
-            all_left_disp.append(flying_disp+'/TRAIN/'+ss+'/'+ff+'/left/'+im.split(".")[0]+'.pfm')
-            all_right_disp.append(flying_disp+'/TRAIN/'+ss+'/'+ff+'/right/'+im.split(".")[0]+'.pfm')
+                all_left_disp.append(flying_disp+'/TRAIN/'+ss+'/'+ff+'/left/'+im.split(".")[0]+'.pfm')
+                all_right_disp.append(flying_disp+'/TRAIN/'+ss+'/'+ff+'/right/'+im.split(".")[0]+'.pfm')
 
-            if is_image_file(flying_dir+ss+'/'+ff+'/right/'+im):
-                all_right_img.append(flying_dir+ss+'/'+ff+'/right/'+im)
+                if is_image_file(flying_dir+ss+'/'+ff+'/right/'+im):
+                    all_right_img.append(flying_dir+ss+'/'+ff+'/right/'+im)
 
-    flying_dir = flying_path+'/TEST/'
+        flying_dir = flying_path+'/TEST/'
 
-    subdir = ['A','B','C']
+        subdir = ['A','B','C']
 
-    for ss in subdir:
-        flying = os.listdir(flying_dir+ss)
+        for ss in subdir:
+            flying = os.listdir(flying_dir+ss)
 
-    for ff in flying:
-        imm_l = os.listdir(flying_dir+ss+'/'+ff+'/left/')
-        for im in imm_l:
-            if is_image_file(flying_dir+ss+'/'+ff+'/left/'+im):
-                test_left_img.append(flying_dir+ss+'/'+ff+'/left/'+im)
+        for ff in flying:
+            imm_l = os.listdir(flying_dir+ss+'/'+ff+'/left/')
+            for im in imm_l:
+                if is_image_file(flying_dir+ss+'/'+ff+'/left/'+im):
+                    test_left_img.append(flying_dir+ss+'/'+ff+'/left/'+im)
 
-            test_left_disp.append(flying_disp+'/TEST/'+ss+'/'+ff+'/left/'+im.split(".")[0]+'.pfm')
-            test_right_disp.append(flying_disp+'/TEST/'+ss+'/'+ff+'/right/'+im.split(".")[0]+'.pfm')
+                test_left_disp.append(flying_disp+'/TEST/'+ss+'/'+ff+'/left/'+im.split(".")[0]+'.pfm')
+                test_right_disp.append(flying_disp+'/TEST/'+ss+'/'+ff+'/right/'+im.split(".")[0]+'.pfm')
 
-            if is_image_file(flying_dir+ss+'/'+ff+'/right/'+im):
-                test_right_img.append(flying_dir+ss+'/'+ff+'/right/'+im)
+                if is_image_file(flying_dir+ss+'/'+ff+'/right/'+im):
+                    test_right_img.append(flying_dir+ss+'/'+ff+'/right/'+im)
 
 #  driving_dir = filepath + [x for x in image if 'driving' in x][0] + '/'
 #  driving_disp = filepath + [x for x in disp if 'driving' in x][0]

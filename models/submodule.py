@@ -101,7 +101,7 @@ class decoderBlock(nn.Module):
         self.up = False
         if up:
             self.up = True
-            self.up = nn.Sequential(nn.Upsample(scale_factor=(2,2,2),mode='trilinear'),
+            self.up = nn.Sequential(nn.Upsample(scale_factor=2,mode='trilinear'),
                                  sepConv3d(channelF, channelF//2, 3, (1,1,1),1,bias=False),
                                  nn.ReLU(inplace=True))
 
@@ -133,7 +133,7 @@ class decoderBlock(nn.Module):
         fvl = self.convs(fvl)
         # pooling
         if self.pool:
-            fvlout = fvl # Is this a bug??
+            fvl_out = fvl
             _,_,d,h,w=fvl.shape
             for i,pool_size in enumerate(np.linspace(1,min(d,h,w)//2,4,dtype=int)):
                 kernel_size = (int(d/pool_size), int(h/pool_size), int(w/pool_size))
@@ -156,7 +156,7 @@ class decoderBlock(nn.Module):
             # classification
             if self.up:
                 fvl = self.up(fvl)
-                costl=fvl # Is this another bug?????
+                costl=fvl # Is this bug?????
             else:
                 costl = self.classify(fvl)
 
