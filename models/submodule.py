@@ -133,7 +133,7 @@ class decoderBlock(nn.Module):
         fvl = self.convs(fvl)
         # pooling
         if self.pool:
-            fvl_out = fvl
+            fvlout = fvl # Is this a bug??
             _,_,d,h,w=fvl.shape
             for i,pool_size in enumerate(np.linspace(1,min(d,h,w)//2,4,dtype=int)):
                 kernel_size = (int(d/pool_size), int(h/pool_size), int(w/pool_size))
@@ -156,7 +156,7 @@ class decoderBlock(nn.Module):
             # classification
             if self.up:
                 fvl = self.up(fvl)
-                costl=fvl
+                costl=fvl # Is this another bug?????
             else:
                 costl = self.classify(fvl)
 
