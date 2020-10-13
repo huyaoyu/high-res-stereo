@@ -15,3 +15,13 @@ mboutput/CrusadeP/*.pfm
 mboutput/CrusadeP/*.txt
 *.zip
 run.sh
+.vscode/
+LargeSize_Resize0.25/
+LargeSize_Resize0.5/
+choutput/
+data-carla-highres/
+data-cmunsh/
+data-tartanair-backup/
+data-tartanair-ori/
+data-tartanair/
+ttoutput/

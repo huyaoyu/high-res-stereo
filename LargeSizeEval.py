@@ -17,8 +17,10 @@ from utils.preprocess import get_transform
 cudnn.benchmark = False
 
 parser = argparse.ArgumentParser(description='HSM')
-parser.add_argument('--datapath', default='./data-mbtest/',
+parser.add_argument('datapath', 
                     help='test data path')
+parser.add_argument('--file-list', type=str, default='Files.csv', 
+                    help='The file list. ')
 parser.add_argument('--loadmodel', default=None,
                     help='model path')
 parser.add_argument('--outdir', default='output',
@@ -27,20 +29,29 @@ parser.add_argument('--clean', type=float, default=-1,
                     help='clean up output using entropy estimation')
 parser.add_argument('--testres', type=float, default=0.5,
                     help='test time resolution ratio 0-x')
-parser.add_argument('--max_disp', type=float, default=-1,
+parser.add_argument('--max-disp', type=float, default=1024,
                     help='maximum disparity to search for')
 parser.add_argument('--level', type=int, default=1,
                     help='output level of output, default is level 1 (stage 3),\
                           can also use level 2 (stage 2) or level 3 (stage 1)')
+parser.add_argument('--max-num', type=int, default=0, 
+                    help='The maximum number of files to process. Debug use. Set 0 to disable.')
 args = parser.parse_args()
 
+assert(args.max_disp > 0)
 
+# # dataloader
+# from dataloader import listfiles as DA
+# test_left_img, test_right_img, _, _ = DA.dataloader(args.datapath)
 
-# dataloader
-from dataloader import listfiles as DA
-test_left_img, test_right_img, _, _ = DA.dataloader(args.datapath)
+# Customized system packages.
+from StereoDataTools import file_access, file_list
+test_left_img, test_right_img, dispFnList, maskFnList = \
+    file_list.read_file_lists(args.file_list, args.datapath)
 
-print(test_left_img)
+# print(test_left_img)
+
+from StereoDataTools import metric
 
 # construct model
 model = hsm(128,args.clean,level=args.level)
@@ -67,33 +78,32 @@ with torch.no_grad():
 
 def main():
     processed = get_transform()
+    
     model.eval()
+
+    ## change max disp
+    max_disp = int(args.max_disp)
+    tmpdisp = int(max_disp*args.testres//64*64)
+    if (max_disp*args.testres/64*64) > tmpdisp:
+        model.module.maxdisp = tmpdisp + 64
+    else:
+        model.module.maxdisp = tmpdisp
+    if model.module.maxdisp ==64: model.module.maxdisp=128
+    model.module.disp_reg8 =  disparityregression(model.module.maxdisp,16).cuda()
+    model.module.disp_reg16 = disparityregression(model.module.maxdisp,16).cuda()
+    model.module.disp_reg32 = disparityregression(model.module.maxdisp,32).cuda()
+    model.module.disp_reg64 = disparityregression(model.module.maxdisp,64).cuda()
+    print(model.module.maxdisp)
+
     nFiles = len(test_left_img)
+    nFiles = args.max_num if nFiles > args.max_num > 0 else nFiles
+
+    metrics = np.zeros((nFiles, 9), dtype=np.float32)
     for inx in range(nFiles):
         print('%d/%d: %s. ' % (inx+1, nFiles, test_left_img[inx]))
         imgL_o = (skimage.io.imread(test_left_img[inx]).astype('float32'))[:,:,:3]
         imgR_o = (skimage.io.imread(test_right_img[inx]).astype('float32'))[:,:,:3]
         imgsize = imgL_o.shape[:2]
-
-        if args.max_disp>0:
-            max_disp = int(args.max_disp)
-        else:
-            with open(test_left_img[inx].replace('im0.png','calib.txt')) as f:
-                lines = f.readlines()
-                max_disp = int(int(lines[6].split('=')[-1]))
-
-        ## change max disp
-        tmpdisp = int(max_disp*args.testres//64*64)
-        if (max_disp*args.testres/64*64) > tmpdisp:
-            model.module.maxdisp = tmpdisp + 64
-        else:
-            model.module.maxdisp = tmpdisp
-        if model.module.maxdisp ==64: model.module.maxdisp=128
-        model.module.disp_reg8 =  disparityregression(model.module.maxdisp,16).cuda()
-        model.module.disp_reg16 = disparityregression(model.module.maxdisp,16).cuda()
-        model.module.disp_reg32 = disparityregression(model.module.maxdisp,32).cuda()
-        model.module.disp_reg64 = disparityregression(model.module.maxdisp,64).cuda()
-        print(model.module.maxdisp)
 
         # resize
         imgL_o = cv2.resize(imgL_o,None,fx=args.testres,fy=args.testres,interpolation=cv2.INTER_CUBIC)
@@ -123,19 +133,14 @@ def main():
             start_time = time.time()
             pred_disp,entropy = model(imgL,imgR)
             torch.cuda.synchronize()
-            ttime = (time.time() - start_time); print('time = %.2f' % (ttime*1000) )
+            ttime = (time.time() - start_time)
+            # print('time = %.2f' % (ttime*1000) )
         pred_disp = torch.squeeze(pred_disp).data.cpu().numpy()
 
         top_pad   = max_h-imgL_o.shape[0]
         left_pad  = max_w-imgL_o.shape[1]
         entropy = entropy[top_pad:,:pred_disp.shape[1]-left_pad].cpu().numpy()
         pred_disp = pred_disp[top_pad:,:pred_disp.shape[1]-left_pad]
-
-        # save predictions
-        idxname = test_left_img[inx].split('/')[-2]
-        if not os.path.exists('%s/%s'%(args.outdir,idxname)):
-            os.makedirs('%s/%s'%(args.outdir,idxname))
-        idxname = '%s/disp0HSM'%(idxname)
 
         # resize to highres
         pred_disp = cv2.resize(pred_disp/args.testres,(imgsize[1],imgsize[0]),interpolation=cv2.INTER_LINEAR)
@@ -144,17 +149,43 @@ def main():
         invalid = np.logical_or(pred_disp == np.inf,pred_disp!=pred_disp)
         pred_disp[invalid] = np.inf
 
-        np.save('%s/%s-disp.npy'% (args.outdir, idxname.split('/')[0]),(pred_disp))
-        np.save('%s/%s-ent.npy'% (args.outdir, idxname.split('/')[0]),(entropy))
-        cv2.imwrite('%s/%s-disp.png'% (args.outdir, idxname.split('/')[0]),pred_disp/pred_disp[~invalid].max()*255)
-        cv2.imwrite('%s/%s-ent.png'% (args.outdir, idxname.split('/')[0]),entropy/entropy.max()*255)
+        # ========== Save. ==========
 
-        with open('%s/%s.pfm'% (args.outdir, idxname),'w') as f:
-            save_pfm(f,pred_disp[::-1,:])
-        with open('%s/%s/timeHSM.txt'%(args.outdir,idxname.split('/')[0]),'w') as f:
+        # save predictions
+        outDir = '%s/%03d' % (args.outdir, inx)
+        if not os.path.exists(outDir):
+            os.makedirs(outDir)
+
+        np.save(os.path.join(outDir, 'disp.npy'), pred_disp)
+        np.save(os.path.join(outDir, 'ent.npy'), entropy)
+        cv2.imwrite(os.path.join(outDir, 'disp.png'), pred_disp/pred_disp[~invalid].max()*255)
+        cv2.imwrite(os.path.join(outDir, 'ent.png'),entropy/entropy.max()*255)
+
+        with open(os.path.join(outDir, 'time.txt'),'w') as f:
              f.write(str(ttime))
 
+        # Metrics.
+        dispT = file_access.read_float( dispFnList[inx] )
+        maskT = file_access.read_mask( maskFnList[inx] ) if ( maskFnList is not None ) else None
+
+        maskValid = np.isfinite( pred_disp )
+        maskT = np.logical_and( maskValid, maskT )
+
+        dispT = np.expand_dims( dispT, axis=0 )
+        maskT = np.expand_dims( maskT, axis=0 )
+        pred_disp = np.expand_dims( pred_disp, axis=0 )
+
+        metrics[inx, :] = metric.epe( dispT, pred_disp, maskT )
+
         torch.cuda.empty_cache()
+    
+    # Report the metrics.
+    outFn = os.path.join(args.outdir, 'Report_EPE.csv')
+    metric.report_epe( outFn, metrics )
+
+    # Save the file list.
+    outFn = os.path.join(args.outdir, 'EvalFileListImg0.txt')
+    np.savetxt(outFn, test_left_img, fmt='%s')
 
 if __name__ == '__main__':
     import TorchCUDAMem
