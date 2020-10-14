@@ -1,3 +1,8 @@
+
+from models import GLOBAL
+# GLOBAL.torch_align_corners(True)
+GLOBAL.torch_align_corners(False)
+
 import argparse
 import cv2
 from models import hsm

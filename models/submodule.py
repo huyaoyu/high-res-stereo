@@ -1,4 +1,7 @@
 from __future__ import print_function
+
+from models import GLOBAL
+
 import torch
 import torch.nn as nn
 import torch.utils.data
@@ -87,6 +90,9 @@ class disparityregression(nn.Module):
 class decoderBlock(nn.Module):
     def __init__(self, nconvs, inchannelF,channelF,stride=(1,1,1),up=False, nstride=1,pool=False):
         super(decoderBlock, self).__init__()
+
+        self.flagAlignCorners = GLOBAL.torch_align_corners()
+
         self.pool=pool
         stride = [stride]*nstride + [(1,1,1)] * (nconvs-nstride)
         self.convs = [sepConv3dBlock(inchannelF,channelF,stride=stride[0])]
@@ -101,7 +107,7 @@ class decoderBlock(nn.Module):
         self.up = False
         if up:
             self.up = True
-            self.up = nn.Sequential(nn.Upsample(scale_factor=(2,2,2),mode='trilinear'),
+            self.up = nn.Sequential(nn.Upsample(scale_factor=(2,2,2),mode='trilinear', align_corners=self.flagAlignCorners),
                                  sepConv3d(channelF, channelF//2, 3, (1,1,1),1,bias=False),
                                  nn.ReLU(inplace=True))
 
@@ -139,7 +145,8 @@ class decoderBlock(nn.Module):
                 kernel_size = (int(d/pool_size), int(h/pool_size), int(w/pool_size))
                 out = F.avg_pool3d(fvl, kernel_size, stride=kernel_size)       
                 out = self.pool_convs[i](out)
-                out = F.upsample(out, size=(d,h,w), mode='trilinear')
+                out = F.upsample(out, size=(d,h,w), 
+                    mode='trilinear', align_corners=self.flagAlignCorners)
                 fvl_out = fvl_out + 0.25*out
             fvl = F.relu(fvl_out/2.,inplace=True)
 

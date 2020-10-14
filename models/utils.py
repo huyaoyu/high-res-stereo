@@ -1,3 +1,5 @@
+from models import GLOBAL
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -193,6 +195,8 @@ class pyramidPooling(nn.Module):
     def __init__(self, in_channels, pool_sizes, model_name='pspnet', fusion_mode='cat', with_bn=True):
         super(pyramidPooling, self).__init__()
 
+        self.flagAlignCorners = GLOBAL.torch_align_corners()
+
         bias = not with_bn
 
         self.paths = []
@@ -232,7 +236,8 @@ class pyramidPooling(nn.Module):
                 #out = F.adaptive_avg_pool2d(x, output_size=(pool_size, pool_size))
                 if self.model_name != 'icnet':
                     out = module(out)
-                out = F.upsample(out, size=(h,w), mode='bilinear')
+                out = F.upsample(out, size=(h,w), 
+                    mode='bilinear', align_corners=self.flagAlignCorners)
                 output_slices.append(out)
 
             return torch.cat(output_slices, dim=1)
@@ -242,7 +247,8 @@ class pyramidPooling(nn.Module):
             for i, module in enumerate(self.path_module_list):
                 out = F.avg_pool2d(x, k_sizes[i], stride=strides[i], padding=0)
                 out = module(out)
-                out = F.upsample(out, size=(h,w), mode='bilinear')
+                out = F.upsample(out, size=(h,w), 
+                    mode='bilinear', align_corners=self.flagAlignCorners)
                 pp_sum = pp_sum + 0.25*out
             pp_sum = F.relu(pp_sum/2.,inplace=True)
 
