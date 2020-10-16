@@ -1,0 +1,5 @@
+The original GitHub URLs are
+remote origin
+Fetch URL: https://github.com/gengshan-y/high-res-stereo.git
+Push  URL: https://github.com/gengshan-y/high-res-stereo.git
+
