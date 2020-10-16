@@ -26,6 +26,8 @@ parser.add_argument('datapath',
                     help='test data path')
 parser.add_argument('--file-list', type=str, default='Files.csv', 
                     help='The file list. ')
+parser.add_argument('--pc-q', type=str, default='', 
+                    help='The Q matrix for point cloud reconstruction. ')
 parser.add_argument('--loadmodel', default=None,
                     help='model path')
 parser.add_argument('--outdir', default='output',
@@ -57,6 +59,7 @@ test_left_img, test_right_img, dispFnList, maskFnList = \
 # print(test_left_img)
 
 from StereoDataTools import metric
+from StereoDataTools import point_cloud
 
 # construct model
 model = hsm(128,args.clean,level=args.level)
@@ -99,6 +102,13 @@ def main():
     model.module.disp_reg32 = disparityregression(model.module.maxdisp,32).cuda()
     model.module.disp_reg64 = disparityregression(model.module.maxdisp,64).cuda()
     print(model.module.maxdisp)
+
+    # Point cloud.
+    if ( '' != args.pc_q ):
+        # Load the Q matrix.
+        Q = np.loadtxt(args.pc_q, dtype=np.float32)
+    else:
+        Q = None
 
     nFiles = len(test_left_img)
     nFiles = args.max_num if nFiles > args.max_num > 0 else nFiles
@@ -170,17 +180,35 @@ def main():
              f.write(str(ttime))
 
         # Metrics.
-        dispT = file_access.read_float( dispFnList[inx] )
-        maskT = file_access.read_mask( maskFnList[inx] ) if ( maskFnList is not None ) else None
-
         maskValid = np.isfinite( pred_disp )
-        maskT = np.logical_and( maskValid, maskT )
-
-        dispT = np.expand_dims( dispT, axis=0 )
-        maskT = np.expand_dims( maskT, axis=0 )
         pred_disp = np.expand_dims( pred_disp, axis=0 )
+        dispT = file_access.read_float( dispFnList[inx] ) if ( dispFnList[inx] != 'None' ) else None
+        if ( dispT is not None ):
+            dispT = np.expand_dims( dispT, axis=0 )
 
-        metrics[inx, :] = metric.epe( dispT, pred_disp, maskT )
+            maskT = file_access.read_mask( maskFnList[inx] ) if ( maskFnList[inx] != 'None' ) else None
+            if ( maskT is not None ):
+                maskT = np.logical_and( maskValid, maskT )
+            else:
+                maskT = maskValid
+
+            maskT = np.expand_dims( maskT, axis=0 )
+
+            metrics[inx, :] = metric.epe( dispT, pred_disp, maskT )
+
+        # Point Cloud.
+        if ( Q is not None ): 
+            # Prepare the RGB source.
+            imgOri = cv2.imread(test_left_img[inx], cv2.IMREAD_UNCHANGED)
+            imgPC = cv2.cvtColor( imgOri, cv2.COLOR_BGR2RGB )
+
+            # Write PLY file.
+            outFn = os.path.join( outDir, 'Full.ply' )
+            point_cloud.write_PLY( outFn, np.squeeze(pred_disp, axis=0), Q, 
+                flagFlip=False, distLimit=10.0, 
+                mask=maskValid, color=imgPC )
+
+            # print('Write PLY file to %s. ' % (outFn))
 
         torch.cuda.empty_cache()
     
