@@ -60,6 +60,7 @@ test_left_img, test_right_img, dispFnList, maskFnList = \
 
 from StereoDataTools import metric
 from StereoDataTools import point_cloud
+from CommonPython.Filesystem import Filesystem
 
 # construct model
 model = hsm(128,args.clean,level=args.level)
@@ -83,6 +84,22 @@ imgR = Variable(torch.FloatTensor(imgR).cuda())
 with torch.no_grad():
     model.eval()
     pred_disp,entropy = model(imgL,imgR)
+
+def find_camera_pose(imgFn):
+    parts = Filesystem.get_filename_parts(imgFn)
+    
+    # Try quaternion format.
+    poseFn = os.path.join( parts[0], 'PoseQ.csv' )
+    if ( os.path.isfile( poseFn ) ):
+        a = np.loadtxt(poseFn, dtype=np.float32, delimiter=',')
+        return file_access.quaternion_xyz_2_trans(a)
+    
+    # Try transformation matrix format.
+    poseFn = os.path.join( parts[0], 'PoseT.csv' )
+    if ( os.path.isfile( poseFn ) ):
+        return np.loadtxt( poseFn, dtype=np.float32, delimiter=',' ).reshape((4, 4))
+    
+    return None
 
 def main():
     processed = get_transform()
@@ -202,9 +219,14 @@ def main():
             imgOri = cv2.imread(test_left_img[inx], cv2.IMREAD_UNCHANGED)
             imgPC = cv2.cvtColor( imgOri, cv2.COLOR_BGR2RGB )
 
+            # Try to find the camera pose file.
+            pose = find_camera_pose(test_left_img[inx])
+            if ( pose is None ):
+                pose = np.eye((4,4), dtype=np.float32)
+
             # Write PLY file.
             outFn = os.path.join( outDir, 'Full.ply' )
-            point_cloud.write_PLY( outFn, np.squeeze(pred_disp, axis=0), Q, 
+            point_cloud.write_PLY( outFn, np.squeeze(pred_disp, axis=0), Q, T=pose, 
                 flagFlip=False, distLimit=10.0, 
                 mask=maskValid, color=imgPC )
 
