@@ -60,6 +60,7 @@ test_left_img, test_right_img, dispFnList, maskFnList = \
 
 from StereoDataTools import metric
 from StereoDataTools import point_cloud
+from StereoDataTools import torch_mem
 from CommonPython.Filesystem import Filesystem
 
 # construct model
@@ -85,22 +86,6 @@ with torch.no_grad():
     model.eval()
     pred_disp,entropy = model(imgL,imgR)
 
-def find_camera_pose(imgFn):
-    parts = Filesystem.get_filename_parts(imgFn)
-    
-    # Try quaternion format.
-    poseFn = os.path.join( parts[0], 'PoseQ.csv' )
-    if ( os.path.isfile( poseFn ) ):
-        a = np.loadtxt(poseFn, dtype=np.float32, delimiter=',')
-        return file_access.quaternion_xyz_2_trans(a)
-    
-    # Try transformation matrix format.
-    poseFn = os.path.join( parts[0], 'PoseT.csv' )
-    if ( os.path.isfile( poseFn ) ):
-        return np.loadtxt( poseFn, dtype=np.float32, delimiter=',' ).reshape((4, 4))
-    
-    return None
-
 def main():
     processed = get_transform()
     
@@ -118,7 +103,7 @@ def main():
     model.module.disp_reg16 = disparityregression(model.module.maxdisp,16).cuda()
     model.module.disp_reg32 = disparityregression(model.module.maxdisp,32).cuda()
     model.module.disp_reg64 = disparityregression(model.module.maxdisp,64).cuda()
-    print(model.module.maxdisp)
+    print('model.module.maxdisp = {}'.format(model.module.maxdisp))
 
     # Point cloud.
     if ( '' != args.pc_q ):
@@ -131,6 +116,8 @@ def main():
     nFiles = args.max_num if nFiles > args.max_num > 0 else nFiles
 
     metrics = np.zeros((nFiles, 9), dtype=np.float32)
+    timeList = []
+    memList  = []
     for inx in range(nFiles):
         print('%d/%d: %s. ' % (inx+1, nFiles, test_left_img[inx]))
         imgL_o = (skimage.io.imread(test_left_img[inx]).astype('float32'))[:,:,:3]
@@ -160,13 +147,17 @@ def main():
         # test
         imgL = Variable(torch.FloatTensor(imgL).cuda())
         imgR = Variable(torch.FloatTensor(imgR).cuda())
-        with torch.no_grad():
-            torch.cuda.synchronize()
-            start_time = time.time()
-            pred_disp,entropy = model(imgL,imgR)
-            torch.cuda.synchronize()
-            ttime = (time.time() - start_time)
-            # print('time = %.2f' % (ttime*1000) )
+        with torch_mem.TorchTraceMalloc() as tt:
+            with torch.no_grad():
+                torch.cuda.synchronize()
+                start_time = time.time()
+                pred_disp,entropy = model(imgL,imgR)
+                torch.cuda.synchronize()
+                ttime = (time.time() - start_time)
+            memSnapshot = tt.snap_shot()
+            memList.append( memSnapshot[1] )
+            timeList.append( ttime )
+        print('time = %.2fs' % (ttime) )
         pred_disp = torch.squeeze(pred_disp).data.cpu().numpy()
 
         top_pad   = max_h-imgL_o.shape[0]
@@ -220,9 +211,10 @@ def main():
             imgPC = cv2.cvtColor( imgOri, cv2.COLOR_BGR2RGB )
 
             # Try to find the camera pose file.
-            pose = find_camera_pose(test_left_img[inx])
+            pose = file_access.find_camera_pose(test_left_img[inx])
             if ( pose is None ):
-                pose = np.eye((4,4), dtype=np.float32)
+                print('>>> No camera pose found. ')
+                pose = np.eye(4, dtype=np.float32)
 
             # Write PLY file.
             outFn = os.path.join( outDir, 'Full.ply' )
@@ -230,20 +222,21 @@ def main():
                 flagFlip=False, distLimit=10.0, 
                 mask=maskValid, color=imgPC )
 
-            # print('Write PLY file to %s. ' % (outFn))
+            print('Write PLY file to %s. ' % (outFn))
 
-        torch.cuda.empty_cache()
+        print('\n==========\n')
+        # torch.cuda.empty_cache()
     
     # Report the metrics.
     outFn = os.path.join(args.outdir, 'Report_EPE.csv')
-    metric.report_epe( outFn, metrics )
+    metric.report_epe( outFn, metrics, extra={
+        'time (s)': timeList, 
+        'mem (MB)': memList } )
 
     # Save the file list.
     outFn = os.path.join(args.outdir, 'EvalFileListImg0.txt')
     np.savetxt(outFn, test_left_img, fmt='%s')
 
 if __name__ == '__main__':
-    import TorchCUDAMem
-    with TorchCUDAMem.TorchTracemalloc() as tt:
-        main()
+    main()
 
