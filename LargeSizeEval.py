@@ -196,7 +196,7 @@ def main():
 
             maskT = file_access.read_mask( maskFnList[inx] ) if ( maskFnList[inx] != 'None' ) else None
             if ( maskT is not None ):
-                maskT = np.logical_and( maskValid, maskT )
+                maskT = np.logical_and( maskValid, maskT == 255 )
             else:
                 maskT = maskValid
 
