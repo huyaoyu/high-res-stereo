@@ -26,6 +26,8 @@ parser.add_argument('datapath',
                     help='test data path')
 parser.add_argument('--file-list', type=str, default='Files.csv', 
                     help='The file list. ')
+parser.add_argument('--occ-list', type=str, default='', 
+                    help='The occlusion file list. Empty to disable. ')
 parser.add_argument('--pc-q', type=str, default='', 
                     help='The Q matrix for point cloud reconstruction. ')
 parser.add_argument('--loadmodel', default=None,
@@ -53,8 +55,13 @@ assert(args.max_disp > 0)
 
 # Customized system packages.
 from StereoDataTools import file_access, file_list
-test_left_img, test_right_img, dispFnList, maskFnList = \
+test_left_img, test_right_img, dispFnList = \
     file_list.read_file_lists(args.file_list, args.datapath)
+
+if ( args.occ_list != '' ):
+    maskFnList = file_list.read_file_lists(args.occ_list, args.datapath)
+else:
+    maskFnList = [ None ] * len(test_left_img)
 
 # print(test_left_img)
 
