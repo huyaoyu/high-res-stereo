@@ -90,7 +90,7 @@ def main():
     processed = get_transform()
     
     model.eval()
-
+    # import ipdb; ipdb.set_trace()
     ## change max disp
     max_disp = int(args.max_disp)
     tmpdisp = int(max_disp*args.testres//64*64)
