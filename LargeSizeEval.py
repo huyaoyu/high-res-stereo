@@ -57,13 +57,14 @@ assert(args.max_disp > 0)
 from StereoDataTools import file_access, file_list
 test_left_img, test_right_img, dispFnList = \
     file_list.read_file_lists(args.file_list, args.datapath)
-
+# import ipdb; ipdb.set_trace()
 if ( args.occ_list != '' ):
-    maskFnList = file_list.read_file_lists(args.occ_list, args.datapath)
+    maskFnList = file_list.read_file_lists(args.occ_list, args.datapath, singleCol=True)[0]
 else:
     maskFnList = [ None ] * len(test_left_img)
 
 # print(test_left_img)
+# print(maskFnList)
 
 from StereoDataTools import metric
 from StereoDataTools import point_cloud
